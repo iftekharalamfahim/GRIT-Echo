@@ -1,0 +1,816 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>
+      GRIT-Echo: Uncertainty-Gated Segmentation for Echocardiography
+    </title>
+    <meta
+      name="description"
+      content="Academic project report for GRIT-Echo, a reproducible study of entropy-based uncertainty gating for echocardiographic segmentation on CAMUS."
+    />
+    <meta name="author" content="Iftekhar Alam Fahim" />
+    <meta
+      name="keywords"
+      content="echocardiography, CAMUS, medical image segmentation, uncertainty, entropy, U-Net, LVEF"
+    />
+    <meta name="theme-color" content="#183b56" />
+    <meta property="og:type" content="article" />
+    <meta
+      property="og:title"
+      content="GRIT-Echo: Uncertainty-Gated Segmentation for Echocardiography"
+    />
+    <meta
+      property="og:description"
+      content="Academic project report by Iftekhar Alam Fahim."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --navy: #183b56;
+        --navy-dark: #102b40;
+        --teal: #167d86;
+        --ink: #243746;
+        --muted: #647482;
+        --paper: #fff;
+        --wash: #f3f6f7;
+        --line: #dce4e8;
+        --gold: #b7791f;
+        --serif: "Source Serif 4", Georgia, serif;
+        --sans:
+          "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: var(--paper);
+        font: 16px/1.72 var(--serif);
+      }
+      a {
+        color: var(--teal);
+      }
+      .page {
+        max-width: 1060px;
+        margin: 0 auto;
+        padding: 0 32px;
+      }
+      .masthead {
+        border-top: 6px solid var(--navy);
+        border-bottom: 1px solid var(--line);
+        padding: 18px 0;
+        font: 600 0.78rem var(--sans);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .masthead .page {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+      }
+      .hero {
+        padding: 72px 0 62px;
+        background: linear-gradient(135deg, #f8fbfb, #eef5f5);
+      }
+      .eyebrow {
+        margin: 0 0 18px;
+        color: var(--teal);
+        font: 700 0.78rem var(--sans);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+      h1,
+      h2,
+      h3 {
+        color: var(--navy-dark);
+        line-height: 1.18;
+      }
+      h1 {
+        max-width: 880px;
+        margin: 0;
+        font: 700 clamp(2.35rem, 5vw, 4.3rem)/1.08 var(--serif);
+        letter-spacing: -0.035em;
+      }
+      .subtitle {
+        max-width: 720px;
+        margin: 24px 0 34px;
+        font-size: 1.28rem;
+        color: #506575;
+      }
+      .author-card {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 8px 18px;
+        align-items: baseline;
+        border-left: 3px solid var(--gold);
+        padding: 3px 0 3px 18px;
+      }
+      .author-card strong {
+        font: 700 1.02rem var(--sans);
+        color: var(--navy-dark);
+      }
+      .author-card span,
+      .author-card a {
+        font: 0.92rem var(--sans);
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 34px;
+      }
+      .button {
+        display: inline-block;
+        padding: 10px 17px;
+        border: 1px solid var(--navy);
+        border-radius: 4px;
+        text-decoration: none;
+        font: 600 0.86rem var(--sans);
+      }
+      .button.primary {
+        background: var(--navy);
+        color: #fff;
+      }
+      .button.secondary {
+        color: var(--navy);
+        background: transparent;
+      }
+      main section {
+        padding: 66px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      main section.wash {
+        background: var(--wash);
+      }
+      h2 {
+        margin: 0 0 24px;
+        font: 700 2rem/1.2 var(--serif);
+        letter-spacing: -0.02em;
+      }
+      h3 {
+        margin: 34px 0 11px;
+        font: 700 1.15rem/1.3 var(--sans);
+      }
+      p {
+        max-width: 790px;
+        margin: 0 0 16px;
+      }
+      .section-label {
+        margin-bottom: 10px;
+        color: var(--teal);
+        font: 700 0.72rem var(--sans);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+      .abstract {
+        max-width: 860px;
+        padding: 26px 30px;
+        border: 1px solid var(--line);
+        border-left: 4px solid var(--teal);
+        background: #fff;
+      }
+      .abstract p:last-child {
+        margin-bottom: 0;
+      }
+      .questions {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 18px;
+        margin-top: 26px;
+      }
+      .question {
+        padding: 22px;
+        background: #fff;
+        border: 1px solid var(--line);
+      }
+      .question b {
+        display: block;
+        margin-bottom: 7px;
+        color: var(--teal);
+        font: 700 0.82rem var(--sans);
+        letter-spacing: 0.08em;
+      }
+      .question p {
+        margin: 0;
+        font-size: 1.03rem;
+      }
+      .facts {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1px;
+        margin-top: 30px;
+        background: var(--line);
+        border: 1px solid var(--line);
+      }
+      .fact {
+        padding: 20px 16px;
+        background: #fff;
+      }
+      .fact strong {
+        display: block;
+        color: var(--navy);
+        font: 700 1.65rem var(--sans);
+      }
+      .fact span {
+        display: block;
+        margin-top: 4px;
+        color: var(--muted);
+        font: 0.76rem var(--sans);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .method-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 18px;
+        margin-top: 26px;
+      }
+      .method {
+        padding: 22px;
+        border-top: 3px solid var(--teal);
+        background: var(--wash);
+      }
+      .method .number {
+        color: var(--gold);
+        font: 700 0.9rem var(--sans);
+      }
+      .method h3 {
+        margin: 9px 0 8px;
+      }
+      .method p {
+        margin: 0;
+        color: #506575;
+        font-size: 0.96rem;
+      }
+      .principles {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 14px 28px;
+        padding-left: 20px;
+      }
+      .principles li {
+        padding-left: 6px;
+        margin: 7px 0;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0 0;
+        font-size: 0.98rem;
+      }
+      th,
+      td {
+        padding: 13px 15px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        color: var(--navy);
+        background: #eaf0f2;
+        font: 700 0.76rem var(--sans);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      td:first-child {
+        width: 62%;
+      }
+      .num {
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      .result-callout {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 28px;
+        align-items: stretch;
+        margin-top: 26px;
+      }
+      .finding {
+        padding: 26px;
+        background: var(--navy);
+        color: #fff;
+      }
+      .finding h3 {
+        margin-top: 0;
+        color: #fff;
+      }
+      .finding p {
+        color: #d8e6eb;
+      }
+      .finding strong {
+        color: #f4c66b;
+      }
+      .limitations {
+        border-left: 3px solid var(--gold);
+        padding: 5px 0 5px 20px;
+      }
+      .limitations p {
+        color: #506575;
+      }
+      .code {
+        margin: 20px 0;
+        padding: 21px 24px;
+        overflow-x: auto;
+        border-radius: 4px;
+        background: #142b3b;
+        color: #e5eef1;
+        font:
+          0.86rem/1.7 Consolas,
+          "SFMono-Regular",
+          monospace;
+      }
+      .code code {
+        white-space: pre;
+      }
+      .repo-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0 35px;
+        margin-top: 15px;
+      }
+      .repo-grid div {
+        padding: 12px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .repo-grid code {
+        color: var(--teal);
+        font: 0.88rem var(--sans);
+      }
+      .repo-grid span {
+        display: block;
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 0.93rem;
+      }
+      .references {
+        padding-left: 22px;
+      }
+      .references li {
+        padding-left: 5px;
+        margin: 13px 0;
+      }
+      footer {
+        padding: 36px 0 48px;
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+      footer strong {
+        color: var(--navy);
+      }
+      .footer-line {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+      @media (max-width: 760px) {
+        .page {
+          padding: 0 20px;
+        }
+        .masthead .page {
+          display: block;
+        }
+        .masthead .page span {
+          display: block;
+          margin-top: 5px;
+        }
+        .hero {
+          padding: 52px 0;
+        }
+        .questions,
+        .method-grid,
+        .result-callout {
+          grid-template-columns: 1fr;
+        }
+        .facts {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .principles,
+        .repo-grid {
+          grid-template-columns: 1fr;
+        }
+        table {
+          display: block;
+          overflow-x: auto;
+        }
+      }
+      @media print {
+        .actions {
+          display: none;
+        }
+        .hero,
+        main section.wash {
+          background: #fff;
+        }
+        .page {
+          max-width: none;
+        }
+      }
+    </style>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "ScholarlyArticle",
+        "name": "GRIT-Echo: Uncertainty-Gated Segmentation for Echocardiography",
+        "author": {
+          "@type": "Person",
+          "name": "Iftekhar Alam Fahim",
+          "email": "includefahim@gmail.com",
+          "url": "https://github.com/iftekharalamfahim"
+        },
+        "datePublished": "2026-09",
+        "affiliation": {
+          "@type": "Organization",
+          "name": "Machine Intelligence Lab, Sichuan University"
+        },
+        "isAccessibleForFree": true,
+        "codeRepository": "https://github.com/iftekharalamfahim/grit-echo"
+      }
+    </script>
+  </head>
+  <body>
+    <header class="masthead">
+      <div class="page">
+        <strong>Academic project report</strong>
+        <span>GRIT-Echo · September 2026</span>
+      </div>
+    </header>
+
+    <header class="hero">
+      <div class="page">
+        <p class="eyebrow">Research report · Medical image computing</p>
+        <h1>GRIT-Echo: Uncertainty-Gated Segmentation for Echocardiography</h1>
+        <p class="subtitle">
+          A reproducible investigation of whether prediction entropy can
+          identify unreliable cardiac segmentation before it reaches a
+          downstream clinical measure.
+        </p>
+        <div class="author-card">
+          <strong>Iftekhar Alam Fahim</strong>
+          <span>Machine Intelligence Lab, Sichuan University</span>
+          <a href="mailto:includefahim@gmail.com">includefahim@gmail.com</a>
+          <a
+            href="https://github.com/iftekharalamfahim"
+            target="_blank"
+            rel="noopener"
+            >GitHub profile</a
+          >
+        </div>
+        <div class="actions">
+          <a
+            class="button primary"
+            href="https://github.com/iftekharalamfahim/grit-echo"
+            target="_blank"
+            rel="noopener"
+            >View source repository</a
+          >
+          <a class="button secondary" href="#results">Read the findings</a>
+          <a class="button secondary" href="#reproducibility"
+            >Reproduce the study</a
+          >
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section>
+        <div class="page">
+          <p class="section-label">Abstract</p>
+          <h2>Making segmentation reliability explicit</h2>
+          <div class="abstract">
+            <p>
+              Deep segmentation systems can produce plausible-looking contours
+              on low-quality ultrasound frames while providing no indication
+              that the result should be reviewed. GRIT-Echo studies a simple
+              reliability signal: normalized Shannon entropy from a U-Net
+              posterior.
+            </p>
+            <p>
+              The system segments the left ventricle, myocardium, and right
+              ventricle in 2D echocardiograms from the CAMUS benchmark. Entropy
+              is measured frame by frame and calibrated on validation data into
+              three information granules—<em>crisp</em>, <em>vague</em>, and
+              <em>artifact-prone</em>. The held-out analysis tests whether these
+              granules track expert image quality and whether their burden
+              predicts segmentation and LVEF error.
+            </p>
+            <p>
+              Entropy separates the CAMUS quality grades (Kruskal–Wallis
+              <em>p</em> = 1.7 × 10<sup>−5</sup>, ε<sup>2</sup> = 0.222).
+              Artifact-prone burden correlates with per-sequence Dice (Spearman
+              ρ = −0.543, <em>p</em> = 5.4 × 10<sup>−9</sup>), and excluding
+              flagged sequences increases mean Dice from 0.893 to 0.919.
+            </p>
+          </div>
+          <div class="facts" aria-label="Study facts">
+            <div class="fact">
+              <strong>500</strong><span>CAMUS patients</span>
+            </div>
+            <div class="fact">
+              <strong>2,000</strong><span>Annotated frames</span>
+            </div>
+            <div class="fact">
+              <strong>0.935</strong><span>Left-ventricle Dice</span>
+            </div>
+            <div class="fact">
+              <strong>+0.026</strong><span>Dice after gating</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="wash">
+        <div class="page">
+          <p class="section-label">Research questions</p>
+          <h2>Study objectives</h2>
+          <div class="questions">
+            <article class="question">
+              <b>RQ1 · Quality association</b>
+              <p>
+                Does frame-wise prediction entropy, summarized as three
+                granules, track CAMUS image-quality labels: Good, Medium, and
+                Poor?
+              </p>
+            </article>
+            <article class="question">
+              <b>RQ2 · Error prediction</b>
+              <p>
+                Does uncertainty predict segmentation and LVEF error on held-out
+                patients, and can it support an automatic review gate?
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="page">
+          <p class="section-label">Methods</p>
+          <h2>Patient-level, geometry-aware evaluation</h2>
+          <p>
+            The pipeline uses the official CAMUS patient split and keeps model
+            selection, entropy calibration, and test evaluation separate. Every
+            test result is produced with deterministic inference and is reported
+            at the sequence level where appropriate.
+          </p>
+          <div class="method-grid">
+            <article class="method">
+              <span class="number">01</span>
+              <h3>Cohort audit</h3>
+              <p>
+                Verify image and mask availability, metadata, and the official
+                400 / 50 / 50 train, validation, and test split.
+              </p>
+            </article>
+            <article class="method">
+              <span class="number">02</span>
+              <h3>Segmentation</h3>
+              <p>
+                Train a four-class U-Net with a ResNet-34 encoder using Dice
+                plus cross-entropy, augmentation, AMP, and early stopping.
+              </p>
+            </article>
+            <article class="method">
+              <span class="number">03</span>
+              <h3>Clinical endpoint</h3>
+              <p>
+                Estimate LVEF using the Simpson biplane method of disks from
+                predicted and expert masks with native voxel spacing.
+              </p>
+            </article>
+            <article class="method">
+              <span class="number">04</span>
+              <h3>Uncertainty</h3>
+              <p>
+                Compute normalized Shannon entropy over posterior probabilities
+                for every frame and over predicted tissue pixels.
+              </p>
+            </article>
+            <article class="method">
+              <span class="number">05</span>
+              <h3>Granulation</h3>
+              <p>
+                Freeze tercile cut-points on validation entropy, then assign
+                identical crisp, vague, or artifact-prone labels to test frames.
+              </p>
+            </article>
+            <article class="method">
+              <span class="number">06</span>
+              <h3>Statistical analysis</h3>
+              <p>
+                Use Kruskal–Wallis, corrected Mann–Whitney comparisons, Spearman
+                correlation, effect sizes, and risk–coverage analysis.
+              </p>
+            </article>
+          </div>
+          <h3>Design safeguards</h3>
+          <ul class="principles">
+            <li>
+              <strong>No patient leakage:</strong> train, validation, and test
+              identifiers are checked for overlap.
+            </li>
+            <li>
+              <strong>Validation-only calibration:</strong> granule cut-points
+              are not fitted on test data.
+            </li>
+            <li>
+              <strong>Geometry preservation:</strong> letterbox padding avoids
+              aspect-ratio distortion before resizing.
+            </li>
+            <li>
+              <strong>Native spacing:</strong> HD95 and volume calculations use
+              per-header voxel spacing.
+            </li>
+            <li>
+              <strong>Declared uncertainty:</strong> effect sizes accompany
+              significance tests.
+            </li>
+            <li>
+              <strong>Deterministic scoring:</strong> fixed seeds, evaluation
+              mode, and argmax decoding are used.
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="wash" id="results">
+        <div class="page">
+          <p class="section-label">Results</p>
+          <h2>Held-out CAMUS performance</h2>
+          <p>
+            All values below are reported on the official test split: 50
+            patients and 200 annotated frames.
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th>Endpoint</th>
+                <th>Result</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Dice — left ventricle / myocardium / right ventricle</td>
+                <td class="num">0.935 / 0.877 / 0.914</td>
+              </tr>
+              <tr>
+                <td>HD95 — left ventricle / myocardium / right ventricle</td>
+                <td class="num">3.92 / 4.17 / 4.31 mm</td>
+              </tr>
+              <tr>
+                <td>LVEF MAE versus expert masks (Pearson correlation)</td>
+                <td class="num">4.38 EF-points (r = 0.895)</td>
+              </tr>
+              <tr>
+                <td>
+                  LVEF MAE versus clinical reference (Pearson correlation)
+                </td>
+                <td class="num">7.17 EF-points (r = 0.864)</td>
+              </tr>
+              <tr>
+                <td>RQ1 — quality effect</td>
+                <td class="num">
+                  H = 21.99, p = 1.7 × 10<sup>−5</sup>, ε<sup>2</sup> = 0.222
+                </td>
+              </tr>
+              <tr>
+                <td>RQ2 — artifact burden and Dice</td>
+                <td class="num">ρ = −0.543, p = 5.4 × 10<sup>−9</sup></td>
+              </tr>
+              <tr>
+                <td>Gate — retained versus flagged sequences</td>
+                <td class="num">
+                  0.919 versus 0.893 Dice, p = 1.0 × 10<sup>−7</sup>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="result-callout">
+            <article class="finding">
+              <h3>Principal finding</h3>
+              <p>
+                Uncertainty is not treated as a decorative confidence score. In
+                this experiment, high artifact-prone burden identifies sequences
+                with lower segmentation quality and can produce a prioritized
+                review list.
+              </p>
+              <p>
+                <strong>Interpretation:</strong> gating improves the accuracy of
+                the retained cohort; it does not claim that flagged scans can be
+                safely ignored.
+              </p>
+            </article>
+            <div class="limitations">
+              <h3>Scope and limitations</h3>
+              <p>
+                This is a single-dataset study using CAMUS labels and a fixed
+                U-Net configuration. The gate is a decision-support mechanism,
+                not a substitute for clinical review or external validation.
+              </p>
+              <p>
+                The LVEF offset against the clinical reference reflects
+                implementation differences in volume estimation; expert-mask
+                comparisons are the primary endpoint.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="reproducibility">
+        <div class="page">
+          <p class="section-label">Reproducibility</p>
+          <h2>Open implementation and execution path</h2>
+          <p>
+            The repository contains the package implementation, unit tests, and
+            a Kaggle-ready notebook. Paths automatically support Kaggle or local
+            execution and can be overridden with <code>GRIT_NIFTI</code>,
+            <code>GRIT_SPLIT</code>, <code>GRIT_SEQ</code>, and
+            <code>GRIT_WORK</code>.
+          </p>
+          <div class="code">
+            <code
+              >git clone https://github.com/iftekharalamfahim/grit-echo.git cd
+              grit-echo pip install -e ".[dev]" pytest grit-echo audit grit-echo
+              run --stages audit,seg,eval,rq</code
+            >
+          </div>
+          <p>
+            The reference environment is Python 3.12.13 with PyTorch 2.10.0,
+            CUDA 12.8, NumPy 2.0.2, and an NVIDIA Tesla T4 on Kaggle. A full
+            notebook run takes approximately 40 minutes, primarily for training.
+          </p>
+        </div>
+      </section>
+
+      <section class="wash">
+        <div class="page">
+          <p class="section-label">References</p>
+          <h2>Scientific basis</h2>
+          <ol class="references">
+            <li>
+              S. Leclerc et al., “Deep Learning for Segmentation Using an Open
+              Large-Scale Dataset in 2D Echocardiography,”
+              <em>IEEE Transactions on Medical Imaging</em>, vol. 38, no. 9, pp.
+              2198–2210, 2019.
+              <a
+                href="https://doi.org/10.1109/TMI.2019.2900516"
+                target="_blank"
+                rel="noopener"
+                >DOI: 10.1109/TMI.2019.2900516</a
+              >.
+            </li>
+            <li>
+              R. M. Lang et al., “Recommendations for Cardiac Chamber
+              Quantification by Echocardiography in Adults,”
+              <em>Journal of the American Society of Echocardiography</em>, vol.
+              28, no. 1, 2015.
+            </li>
+          </ol>
+          <p>
+            CAMUS is the source of the cohort, official patient-level split, and
+            image-quality labels. The clinical endpoint follows the Simpson
+            biplane method of disks described by the American Society of
+            Echocardiography.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="page footer-line">
+        <div>
+          <strong>GRIT-Echo</strong><br />Uncertainty-gated echocardiographic
+          segmentation
+        </div>
+        <div>
+          <strong>Iftekhar Alam Fahim</strong><br />Machine Intelligence Lab,
+          Sichuan University<br /><a href="mailto:includefahim@gmail.com"
+            >includefahim@gmail.com</a
+          >
+        </div>
+        <div>
+          <a
+            href="https://github.com/iftekharalamfahim/grit-echo"
+            target="_blank"
+            rel="noopener"
+            >Source repository</a
+          ><br />Released under the MIT License
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
